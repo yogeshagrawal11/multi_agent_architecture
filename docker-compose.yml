@@ -1,0 +1,26 @@
+# Author: Yogesh Agrawal
+# Docker Compose with a SINGLE service ("app"). One container runs every
+# process via supervisord. Compose is used only as the build/run entrypoint
+# and to wire env, volumes, host networking, and ports.
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    image: banking-multiagent:latest
+    container_name: banking-multiagent
+    env_file:
+      - .env
+    # Reach the host's Ollama (gpt-oss:120b) from inside the container.
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8080:8080"   # Nginx edge HTTP (UI + API)
+      - "8443:8443"   # Nginx edge HTTPS (self-signed, demo)
+    volumes:
+      - app_data:/data          # SQLite databases (bank.db, sessions.db)
+    restart: unless-stopped
+
+volumes:
+  app_data:

@@ -1,0 +1,153 @@
+<mxfile host="app.diagrams.net" agent="Kiro" version="24.0.0">
+  <diagram id="banking-arch" name="Banking Multi-Agent Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1100" pageHeight="1500" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- Title -->
+        <mxCell id="title" value="Banking Multi-Agent Chatbot — Production Architecture" style="text;html=1;fontSize=20;fontStyle=1;align=center;verticalAlign=middle;fontColor=#1A1A1A;" vertex="1" parent="1">
+          <mxGeometry x="140" y="20" width="820" height="36" as="geometry" />
+        </mxCell>
+        <mxCell id="subtitle" value="Author: Yogesh Agrawal   •   green = AI engineering, blue = software engineering" style="text;html=1;fontSize=12;align=center;verticalAlign=middle;fontColor=#666666;" vertex="1" parent="1">
+          <mxGeometry x="140" y="54" width="820" height="20" as="geometry" />
+        </mxCell>
+
+        <!-- User / Browser -->
+        <mxCell id="browser" value="&lt;b&gt;Customer Browser&lt;/b&gt;&#10;Chat UI (login + conversation)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8EAF6;strokeColor=#3F51B5;fontSize=12;verticalAlign=top;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="440" y="100" width="220" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Edge: Nginx -->
+        <mxCell id="edge" value="&lt;b&gt;Edge Layer — Nginx&lt;/b&gt; 🔵&#10;TLS termination (8080 / 8443)&#10;Rate limiting (4 req/s, burst)&#10;WAF-lite (bad-pattern block)&#10;Reverse proxy + static UI" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;verticalAlign=top;spacing=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="400" y="200" width="300" height="100" as="geometry" />
+        </mxCell>
+
+        <!-- Auth note on the edge->gateway link -->
+        <mxCell id="jwtnote" value="JWT verified → customer_id, role&#10;(identity from token, never user input)" style="text;html=1;fontSize=10;align=center;fontColor=#1565C0;fontStyle=2;" vertex="1" parent="1">
+          <mxGeometry x="700" y="315" width="260" height="30" as="geometry" />
+        </mxCell>
+
+        <!-- Gateway container boundary -->
+        <mxCell id="container" value="Single Docker container (supervisord) — reference deployment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=none;strokeColor=#9E9E9E;dashed=1;fontSize=11;fontStyle=2;verticalAlign=top;align=left;spacing=8;fontColor=#616161;" vertex="1" parent="1">
+          <mxGeometry x="80" y="350" width="940" height="760" as="geometry" />
+        </mxCell>
+
+        <!-- FastAPI gateway -->
+        <mxCell id="gateway" value="&lt;b&gt;FastAPI Gateway&lt;/b&gt; 🔵" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=12;verticalAlign=top;spacing=8;" vertex="1" parent="1">
+          <mxGeometry x="360" y="380" width="380" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- PII redaction -->
+        <mxCell id="pii" value="&lt;b&gt;PII Redaction (Presidio)&lt;/b&gt; 🔵&#10;Mask cards / phones / emails / names&#10;BEFORE any LLM call · reversible map" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;verticalAlign=top;spacing=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="360" y="440" width="380" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- Coordinator -->
+        <mxCell id="coord" value="&lt;b&gt;Coordinator / Planner&lt;/b&gt; 🟢&#10;LLM picks which specialists to call, then aggregates" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=12;verticalAlign=top;spacing=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="300" y="540" width="500" height="56" as="geometry" />
+        </mxCell>
+
+        <!-- Sub agents -->
+        <mxCell id="acct" value="&lt;b&gt;Accounts&lt;/b&gt; 🟢&#10;balance,&#10;account info" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=11;verticalAlign=top;spacing=6;align=left;" vertex="1" parent="1">
+          <mxGeometry x="300" y="630" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="txn" value="&lt;b&gt;Transactions&lt;/b&gt; 🟢&#10;list · inspect ·&#10;flag suspicious" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=11;verticalAlign=top;spacing=6;align=left;" vertex="1" parent="1">
+          <mxGeometry x="475" y="630" width="150" height="70" as="geometry" />
+        </mxCell>
+        <mxCell id="svc" value="&lt;b&gt;Service&lt;/b&gt; 🟢 + RBAC 🔵&#10;checkbook · address&#10;tier-restricted actions" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=11;verticalAlign=top;spacing=6;align=left;" vertex="1" parent="1">
+          <mxGeometry x="650" y="630" width="150" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- RBAC callout -->
+        <mxCell id="rbac" value="&lt;b&gt;RBAC check&lt;/b&gt; 🔵&#10;runs BEFORE a sensitive&#10;tool executes — blocks&#10;unauthorized roles" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=10;verticalAlign=top;spacing=6;align=left;" vertex="1" parent="1">
+          <mxGeometry x="830" y="620" width="160" height="90" as="geometry" />
+        </mxCell>
+
+        <!-- MCP servers -->
+        <mxCell id="mcp" value="&lt;b&gt;MCP Servers (stdio)&lt;/b&gt; 🔵&#10;Accounts · Transactions · Service&#10;Own all API schema / error handling&#10;Spawned on-demand by the client manager" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;verticalAlign=top;spacing=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="300" y="740" width="500" height="76" as="geometry" />
+        </mxCell>
+
+        <!-- Mock bank + SQLite -->
+        <mxCell id="bank" value="&lt;b&gt;Mock Bank API&lt;/b&gt; 🔵&#10;balance · transactions · service requests" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=11;verticalAlign=top;spacing=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="300" y="860" width="300" height="56" as="geometry" />
+        </mxCell>
+        <mxCell id="sqlite" value="&lt;b&gt;SQLite&lt;/b&gt;&#10;bank.db" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#ECEFF1;strokeColor=#546E7A;fontSize=11;verticalAlign=top;spacing=6;" vertex="1" parent="1">
+          <mxGeometry x="640" y="852" width="110" height="72" as="geometry" />
+        </mxCell>
+
+        <!-- Session store -->
+        <mxCell id="session" value="&lt;b&gt;Session Store&lt;/b&gt; 🔵&#10;conversation history (LLM context)&#10;inter-agent shared state&#10;cost log · trace metadata" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;fillColor=#ECEFF1;strokeColor=#546E7A;fontSize=11;verticalAlign=top;spacing=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="830" y="740" width="160" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Observability -->
+        <mxCell id="obs" value="&lt;b&gt;Observability + Cost&lt;/b&gt; 🟢/🔵&#10;Langfuse SDK traces (optional)&#10;prompt → plan → tool calls (args/results)&#10;token usage + non-deterministic cost" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F1F8E9;strokeColor=#558B2F;fontSize=11;verticalAlign=top;spacing=8;align=left;dashed=1;" vertex="1" parent="1">
+          <mxGeometry x="110" y="740" width="170" height="110" as="geometry" />
+        </mxCell>
+
+        <!-- Ollama (host, outside container) -->
+        <mxCell id="ollama" value="&lt;b&gt;Self-hosted LLM — Ollama (host)&lt;/b&gt; 🟢&#10;gpt-oss:120b · reached via host.docker.internal&#10;data never leaves your environment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=12;verticalAlign=top;spacing=8;align=left;" vertex="1" parent="1">
+          <mxGeometry x="340" y="1150" width="420" height="70" as="geometry" />
+        </mxCell>
+
+        <!-- ===== Edges ===== -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;startArrow=block;strokeColor=#555555;strokeWidth=2;" edge="1" parent="1" source="browser" target="edge">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#555555;strokeWidth=2;" edge="1" parent="1" source="edge" target="gateway">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#555555;strokeWidth=2;" edge="1" parent="1" source="gateway" target="pii">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#555555;strokeWidth=2;" edge="1" parent="1" source="pii" target="coord">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#2E7D32;strokeWidth=1.5;" edge="1" parent="1" source="coord" target="acct">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#2E7D32;strokeWidth=1.5;" edge="1" parent="1" source="coord" target="txn">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#2E7D32;strokeWidth=1.5;" edge="1" parent="1" source="coord" target="svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e8" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;dashed=1;strokeColor=#E65100;" edge="1" parent="1" source="rbac" target="svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="MCP" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;startArrow=block;strokeColor=#1565C0;strokeWidth=1.5;fontSize=10;" edge="1" parent="1" source="acct" target="mcp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e10" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;startArrow=block;strokeColor=#1565C0;strokeWidth=1.5;" edge="1" parent="1" source="txn" target="mcp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e11" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;startArrow=block;strokeColor=#1565C0;strokeWidth=1.5;" edge="1" parent="1" source="svc" target="mcp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e12" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#1565C0;strokeWidth=1.5;" edge="1" parent="1" source="mcp" target="bank">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e13" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;strokeColor=#546E7A;" edge="1" parent="1" source="bank" target="sqlite">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e14" value="history + shared state" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;startArrow=block;dashed=1;strokeColor=#546E7A;fontSize=10;" edge="1" parent="1" source="coord" target="session">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e15" value="traces + cost" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;dashed=1;strokeColor=#558B2F;fontSize=10;" edge="1" parent="1" source="gateway" target="obs">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e16" value="LLM calls (reasoning · tool selection · aggregation)" style="edgeStyle=orthogonalEdgeStyle;rounded=1;html=1;endArrow=block;startArrow=block;strokeColor=#2E7D32;strokeWidth=2;fontSize=10;" edge="1" parent="1" source="coord" target="ollama">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="250" y="568" />
+              <mxPoint x="250" y="1185" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

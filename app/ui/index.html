@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<!-- Author: Yogesh Agrawal -->
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bank Assistant</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: system-ui, sans-serif; margin: 0; background: #0f172a; color: #e2e8f0; }
+    .wrap { max-width: 720px; margin: 0 auto; height: 100vh; display: flex; flex-direction: column; }
+    header { padding: 16px; background: #1e293b; font-weight: 600; display: flex; justify-content: space-between; align-items: center; }
+    header .user { font-size: 13px; color: #94a3b8; font-weight: 400; }
+    #login { padding: 32px; margin: auto; width: 100%; max-width: 360px; }
+    #login h2 { margin-top: 0; }
+    #login input { width: 100%; padding: 10px; margin: 6px 0 14px; border-radius: 8px; border: 1px solid #334155; background: #0b1220; color: #e2e8f0; }
+    button { background: #2563eb; color: white; border: none; padding: 10px 16px; border-radius: 8px; cursor: pointer; }
+    button:hover { background: #1d4ed8; }
+    #chat { flex: 1; overflow-y: auto; padding: 16px; display: none; }
+    .msg { margin: 10px 0; display: flex; }
+    .msg.user { justify-content: flex-end; }
+    .bubble { padding: 10px 14px; border-radius: 14px; max-width: 75%; white-space: pre-wrap; }
+    .user .bubble { background: #2563eb; }
+    .assistant .bubble { background: #334155; }
+    #composer { display: none; padding: 12px; background: #1e293b; gap: 8px; }
+    #composer input { flex: 1; padding: 12px; border-radius: 10px; border: 1px solid #334155; background: #0b1220; color: #e2e8f0; }
+    #composer { display: none; }
+    .row { display: flex; gap: 8px; }
+    .hint { font-size: 12px; color: #64748b; margin-top: 8px; }
+    .err { color: #f87171; font-size: 13px; min-height: 18px; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <span>🏦 Bank Assistant</span>
+      <span style="display:flex;align-items:center;gap:12px;">
+        <span class="user" id="whoami"></span>
+        <button id="logoutBtn" style="display:none;background:#475569;padding:6px 12px;font-size:13px;">Logout</button>
+      </span>
+    </header>
+
+    <div id="login">
+      <h2>Sign in</h2>
+      <label>Username</label>
+      <input id="username" value="john" autocomplete="username" />
+      <label>Password</label>
+      <input id="password" type="password" value="password123" autocomplete="current-password" />
+      <button id="loginBtn">Login</button>
+      <div class="err" id="loginErr"></div>
+      <div class="hint">Demo users: john / sanjay / priya / arjun / meena — password <code>password123</code></div>
+    </div>
+
+    <div id="chat"></div>
+
+    <div id="composer" class="row">
+      <input id="message" placeholder="Ask about your balance, transactions…" />
+      <button id="sendBtn">Send</button>
+    </div>
+  </div>
+
+  <script>
+    let token = null;
+    let conversationId = null;
+    let sessionId = null;   // Langfuse session: stable from login until logout
+    let username = null;
+
+    const $ = (id) => document.getElementById(id);
+
+    function newSessionId() {
+      // RFC4122-ish random id; prefixed so it's recognizable in Langfuse.
+      const rnd = (crypto && crypto.randomUUID) ? crypto.randomUUID()
+                 : (Date.now() + "-" + Math.random().toString(16).slice(2));
+      return "sess-" + rnd;
+    }
+
+    async function login() {
+      $("loginErr").textContent = "";
+      const u = $("username").value.trim();
+      const p = $("password").value;
+      try {
+        const r = await fetch("/auth/login", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ username: u, password: p }),
+        });
+        if (!r.ok) {
+          // In M2 the auth endpoint may not exist yet; allow guest fallback.
+          if (r.status === 404) { startChat(u, null); return; }
+          const e = await r.json().catch(() => ({}));
+          $("loginErr").textContent = e.detail || "Login failed";
+          return;
+        }
+        const data = await r.json();
+        startChat(u, data.access_token);
+      } catch (err) {
+        $("loginErr").textContent = "Network error";
+      }
+    }
+
+    function startChat(u, tok) {
+      username = u; token = tok;
+      sessionId = newSessionId();      // one Langfuse session per login
+      conversationId = null;           // fresh conversation on login
+      $("chat").innerHTML = "";
+      $("login").style.display = "none";
+      $("chat").style.display = "block";
+      $("composer").style.display = "flex";
+      $("whoami").textContent = "Signed in as " + u;
+      $("logoutBtn").style.display = "inline-block";
+    }
+
+    function logout() {
+      // Clear all session state; next login starts a new Langfuse session.
+      token = null; conversationId = null; sessionId = null; username = null;
+      $("chat").innerHTML = "";
+      $("message").value = "";
+      $("whoami").textContent = "";
+      $("logoutBtn").style.display = "none";
+      $("composer").style.display = "none";
+      $("chat").style.display = "none";
+      $("login").style.display = "block";
+      $("password").value = "";
+    }
+
+    function addMessage(role, text) {
+      const div = document.createElement("div");
+      div.className = "msg " + role;
+      const b = document.createElement("div");
+      b.className = "bubble";
+      b.textContent = text;
+      div.appendChild(b);
+      $("chat").appendChild(div);
+      $("chat").scrollTop = $("chat").scrollHeight;
+    }
+
+    async function send() {
+      const msg = $("message").value.trim();
+      if (!msg) return;
+      addMessage("user", msg);
+      $("message").value = "";
+      const headers = { "Content-Type": "application/json" };
+      if (token) headers["Authorization"] = "Bearer " + token;
+      try {
+        const r = await fetch("/api/chat", {
+          method: "POST",
+          headers,
+          body: JSON.stringify({ message: msg, conversation_id: conversationId, session_id: sessionId }),
+        });
+        const data = await r.json();
+        conversationId = data.conversation_id || conversationId;
+        addMessage("assistant", data.reply || "(no reply)");
+      } catch (err) {
+        addMessage("assistant", "Error contacting server.");
+      }
+    }
+
+    $("loginBtn").addEventListener("click", login);
+    $("logoutBtn").addEventListener("click", logout);
+    $("sendBtn").addEventListener("click", send);
+    $("message").addEventListener("keydown", (e) => { if (e.key === "Enter") send(); });
+    $("password").addEventListener("keydown", (e) => { if (e.key === "Enter") login(); });
+  </script>
+</body>
+</html>
