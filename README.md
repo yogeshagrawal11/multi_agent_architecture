@@ -141,15 +141,15 @@ Our "working" bot has a terrifying bug. It asks the user for a customer ID — s
 **if you know any customer's ID, you can read their account.** That's a data
 breach with a chat interface.
 
-**Fix #1 — Authentication (🔵).** Integrate the bank's identity provider. The
+Authentication is enforced by integrating the bank's identity provider. The
 user logs in; every request now carries a verified identity. The customer ID
 comes from the **token**, never from user input. A customer can only ever see
 their own data.
 
-**Fix #2 — Authorization / RBAC (🔵).** Authentication tells you *who* the
-customer is. Authorization tells you *what that customer is allowed to do*.
-These are different questions, and conflating them is a classic security
-mistake. A valid login does **not** mean "allowed to do anything."
+Authorization and RBAC make the next distinction explicit: authentication tells
+you *who* the customer is, while authorization tells you *what that customer is
+allowed to do*. These are different questions, and conflating them is a classic
+security mistake. A valid login does **not** mean "allowed to do anything."
 
 In this bank, customers fall into tiers, and each tier can do a different set of
 things:
@@ -247,7 +247,7 @@ A user asks about their last transaction, then says *"flag that one as
 suspicious."* The naive bot has no idea what "that" means — LLMs don't remember
 previous turns. Worse, it has no record that anything was ever flagged.
 
-**Fix (🔵): a session store.** Persist:
+A session store keeps the needed state around between turns:
 - **conversation history** → fed back into the LLM for context
 - **inter-agent shared state** → so one agent can see another's output
 
@@ -262,15 +262,15 @@ verifies exactly this sequence.
 A customer types their full card number into the chat. Our agent is about to
 send that to a third-party LLM. We just leaked PII to a vendor.
 
-**Fix #1 — PII redaction (🔵).** Before *any* LLM call — even a local one —
-run the text through a redactor that masks cards, phones, emails, names, and
-account numbers with reversible placeholders (`<CREDIT_CARD_1>`). The real values
-are restored only in the final answer, for the authenticated customer. The
-reference build uses **Microsoft Presidio** for this.
+PII redaction is applied before *any* LLM call — even a local one. The text is
+run through a redactor that masks cards, phones, emails, names, and account
+numbers with reversible placeholders (`<CREDIT_CARD_1>`). The real values are
+restored only in the final answer, for the authenticated customer. The reference
+build uses **Microsoft Presidio** for this.
 
-**Fix #2 — Hybrid LLM (🟢).** Keep a **self-hosted** open model inside your
-security boundary for routine reasoning; only reach for a powerful third-party
-model when genuinely needed. (The reference implementation goes 100% local with
+A hybrid LLM strategy keeps a **self-hosted** open model inside the security
+boundary for routine reasoning, and only reaches for a powerful third-party model
+when genuinely needed. (The reference implementation goes 100% local with
 Ollama, so nothing ever leaves the box.)
 
 ---
@@ -280,11 +280,11 @@ Ollama, so nothing ever leaves the box.)
 A developer tweaks a system prompt — "stop confirming the delivery address" —
 and silently breaks checkbook delivery. How would you ever catch that?
 
-**Fix (🟢): an agent evaluation suite.** A golden dataset of tricky prompts plus
-a harness that scores *non-deterministically*: structural checks (did it call
-the right tools? was the unauthorized tool blocked?) **and** semantic similarity
-to a reference answer (because the exact wording will never match). The
-implementation ships 6 golden cases scored with embeddings — all passing.
+An agent evaluation suite uses a golden dataset of tricky prompts and a harness
+that scores *non-deterministically*: structural checks (did it call the right
+tools? was the unauthorized tool blocked?) **and** semantic similarity to a
+reference answer (because the exact wording will never match). The implementation
+ships 6 golden cases scored with embeddings — all passing.
 
 ---
 
@@ -294,8 +294,8 @@ A customer disputes a balance the bot gave them. You open the logs and find…
 "request in, response out." Nothing about which agent ran, which tool, with what
 inputs. You can't debug it. **Never ship this.**
 
-**Fix (🟢+🔵): observability.** Trace every interaction — the prompt, the plan,
-each sub-agent, each tool call and its arguments, the LLM parameters. The
+Observability captures every interaction — the prompt, the plan, each
+sub-agent, each tool call and its arguments, and the LLM parameters. The
 reference build integrates the **Langfuse** SDK (optional) plus a cost log.
 
 Traces are grouped by a **session id that is stable from login to logout**: the
